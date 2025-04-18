@@ -1,0 +1,46 @@
+Proposition 3.5.2. Let (D, ⊑) be an algebraic DCPO. Then the set of opens
+↑ KD = { ↑ c | c ∈ KD}
+is a subbasis for ΣD.
+Proof. Let U be a Scott-open set. Then we have that U = S{ ↑ c | c ∈
+U ∩ KD}, since for any x ∈ U, by the algebraicity of D, there is a
+compact element c ⊑ x in U, so x ∈ ↑ c ⊆ U.
+This characterisation allows us to prove that the Scott topology is
+sober, placing algebraic DCPOs inside the Stone duality of the previ-
+ous section.
+Proposition 3.5.3. Let (D, ⊑) be an algebraic DCPO. Then ΣD is sober.
+Proof. We show that the following unit map is a homeomorphism.
+ηD : D → pt(ΣD)
+d 7 → {U ∈ ΣD | d ∈ U}
+(Injectivity) Let d, e ∈ D, and suppose d̸ = e. Then either d̸ ⊑ e
+or e̸ ⊑ d. By Proposition 3.1.5, the Scott topology induces ⊑ as its
+specialisation ordering, so d̸ ⊑ e is equivalent to saying that there
+exists U ∈ ΣD such that d ∈ U but e̸ ∈ U, and similarly for e̸ ⊑ d. In
+either case, this shows that ηD (d)̸ = ηD (e).
+(Surjectivity) Let x ∈ pt(ΣD). Intuitively, by Proposition 3.5.2, the
+contents of x (treated as a completely prime filter) are entirely deter-
+mined by what basic opens x contains. So the idea here is that the
+set
+Kx := {c ∈ KD | ↑ c ∈ x}
+determines x, and since we are in an algebraic DCPO, a set of compact
+points determines a unique point in D. Therefore, we claim that Kx is
+directed and that ηD (F↑ Kx ) = x.
+To see that Kx is directed, take c, d ∈ Kx. Then ↑ c, ↑ d ∈ x, so by x
+being a filter, ( ↑ c ∩ ↑ d) ∈ x. By Proposition 3.5.2,
+↑ c ∩ ↑ d = [{ ↑ e | e ∈ KD & ↑ e ⊆ ( ↑ c ∩ ↑ d)}
+Since x is completely prime, we must therefore have some e ∈ KD
+such that ↑ e ∈ x and ↑ e ⊆ ( ↑ c ∩ ↑ d), which equivalently means
+e ∈ Kx and e ≥ c, d. This shows Kx is directed.
+Next, to see that {U ∈ ΣD | F↑ Kx ∈ U} = x we can reason in a
+
+fairly formal fashion:
+G↑ Kx ∈ U
+⇐⇒ G↑ Kx ∈ [{ ↑ e | e ∈ KD & ↑ e ⊆ U} by Proposition 3.5.2
+⇐⇒ ∃e ∈ KD. ↑ e ⊆ U & G↑ Kx ∈ ↑ e
+⇐⇒ ∃e ∈ KD. ↑ e ⊆ U & e ≤ G↑ Kx
+⇐⇒ ∃e ∈ KD.∃c ∈ Kx. ↑ e ⊆ U & e ≤ c
+⇐⇒ ∃e, c ∈ KD. ↑ e ⊆ U & ↑ c ⊆ ↑ e & ↑ c ∈ x
+⇐⇒ ∃e ∈ KD. ↑ e ⊆ U & ↑ e ∈ x by x upwards closed
+⇐⇒ U ∈ x by x completely prime
+(Open) Let U be a Scott-open set. Then by definition of the topol-
+ogy on pt(ΣD), the set εΣD (U) := {x ∈ pt(ΣD) | U ∈ x} is open. We
+can then show that ηD [U] = εΣD (U), and is therefore also open.
