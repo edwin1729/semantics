@@ -21,7 +21,7 @@ notation "↓" x:80 => lowerSet x
 /-- upward closure-/
 def upperSet {α : Type*} [LE α] (x: α): Set α :=  {y | x ≤ y}
 /-- notation for upperSet (↑ was taken) -/
-notation x:80 "ᵘ" => upperSet x
+notation x:100 "ᵘ" => upperSet x
 
 /-- approximants: read as x is way smaller than y-/
 def approx  {α : Type*} [CompletePartialOrder α] (x: α) (y: α) := ∀ (d : Set α), DirectedOn (· ≤ ·) d → y ≤ sSup d → ∃ a ∈ d, x ≤ a

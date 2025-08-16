@@ -1,7 +1,4 @@
-import Mathlib.Order.CompletePartialOrder
-import Mathlib.Topology.Order.ScottTopology
-import Mathlib.Topology.Bases
-import Mathlib.Topology.Order
+import Mathlib.Topology.Sets.Opens
 
 import Semantics.Defs
 
@@ -21,61 +18,15 @@ instance (α : Type*) [CompletePartialOrder α] : IsScott α {d | DirectedOn (·
 lemma aesopify {α : Type*} {compact: α -> Prop } {x: α} [LE α] {u: Set α} (a: ∃ c, (c ≤ x ∧ compact c) ∧ c ∈ u) : ∃ c ≤ x, c ∈ u ∧ compact c := by
   aesop
 
--- below is comment is copied from reference
-/-- Proposition 3.5.2. Let (D, ⊑) be an algebraic DCPO. Then the set of opens
-   ↑ KD = { ↑ c | c ∈ KD}
-   is a subbasis for ΣD
+variable {α : Type*} [AlgebraicDCPO α]
 
-   Proof. Let U be a Scott-open set. Then we have that U = S{ ↑ c | c ∈
-   U ∩ KD}, since for any x ∈ U, by the algebraicity of D, there is a
-   compact element c ⊑ x in U, so x ∈ ↑ c ⊆ U -/
-lemma scott_is_upset (α : Type*) [AlgebraicDCPO α] : IsTopologicalBasis (upperSet '' 𝕂 α) := by
-  apply isTopologicalBasis_of_isOpen_of_nhds
-  · -- every upper set of a compact element in the DCPO is a Scott open set
-    -- This is the true by definition direction, as compactness corresponds to Scott-Hausdorrf open,
-    -- and upper set corresponds to Upper set open
-    intro u hu
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn]
-    constructor
-    · -- u is an upper set
-      unfold IsUpperSet
-      intro a b a_1 a_2
-      simp_all only [mem_image]
-      obtain ⟨w, h⟩ := hu
-      obtain ⟨left, right⟩ := h
-      subst right
-      -- unfold _root_.upperSet at a_2 ⊢
-      simp only [_root_.upperSet, mem_setOf_eq] at a_2 ⊢
-      transitivity a
-      · exact a_2
-      · exact a_1
-    · -- u is a Scott-Hausdorff open set, ie it has the inaccessable directed joins property
-      -- However the directed sets for our topology are defined precisely as the directed sets of the our DCPOs
-      -- So compact elements are precisely those elements which have directed innaccessable joins
-      intro d hd nonempty _  x hx hx'
-      simp at hu
-      choose y yCompact yUpper using hu
-      -- rewrite `x`'s LUB propoerty in terms of sSup
-      have hx : x = sSup d := by
-        have hsSupd := CompletePartialOrder.lubOfDirected d hd
-        exact IsLUB.unique hx hsSupd
+lemma h_nhds
+(x : α)
+(u : Set α)
+(x_in_u : x ∈ u)
+(hu : IsOpen u)
+: ∃ v ∈ _root_.upperSet '' 𝕂 α, x ∈ v ∧ v ⊆ u := by
 
-      have hy : y ≤ sSup d := by
-        rw [← hx]
-
-        subst yUpper
-        simp only [_root_.upperSet, mem_setOf_eq] at hx'
-        exact hx'
-
-      choose a a_in_d ha' using yCompact d hd hy
-      have a_in_u : a ∈ u := by aesop
-      use a
-      constructor
-      · exact a_in_d
-      · exact a_in_u
-  · -- If an element `x` is in an open set `u`, we can find it in a set in the basis (`upperSet c`)
-
-    intro x u x_in_u hu
     rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn] at hu
 
     obtain ⟨upper, hausdorff⟩ := hu
@@ -121,3 +72,76 @@ lemma scott_is_upset (α : Type*) [AlgebraicDCPO α] : IsTopologicalBasis (upper
       · apply hf
       · intro y hy
         aesop
+
+lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn]
+    constructor
+    · -- u is an upper set
+      unfold IsUpperSet
+      intro a b a_1 a_2
+      simp_all only [mem_image]
+      obtain ⟨w, h⟩ := hu
+      obtain ⟨left, right⟩ := h
+      subst right
+      -- unfold _root_.upperSet at a_2 ⊢
+      simp only [_root_.upperSet, mem_setOf_eq] at a_2 ⊢
+      transitivity a
+      · exact a_2
+      · exact a_1
+    · -- u is a Scott-Hausdorff open set, ie it has the inaccessable directed joins property
+      -- However the directed sets for our topology are defined precisely as the directed sets of the our DCPOs
+      -- So compact elements are precisely those elements which have directed innaccessable joins
+      intro d hd nonempty _  x hx hx'
+      simp at hu
+      choose y yCompact yUpper using hu
+      -- rewrite `x`'s LUB propoerty in terms of sSup
+      have hx : x = sSup d := by
+        have hsSupd := CompletePartialOrder.lubOfDirected d hd
+        exact IsLUB.unique hx hsSupd
+
+      have hy : y ≤ sSup d := by
+        rw [← hx]
+
+        subst yUpper
+        simp only [_root_.upperSet, mem_setOf_eq] at hx'
+        exact hx'
+
+      choose a a_in_d ha' using yCompact d hd hy
+      have a_in_u : a ∈ u := by aesop
+      use a
+      constructor
+      · exact a_in_d
+      · exact a_in_u
+-- below is comment is copied from reference
+/-- Proposition 3.5.2. Let (D, ⊑) be an algebraic DCPO. Then the set of opens
+   ↑ KD = { ↑ c | c ∈ KD}
+   is a subbasis for ΣD
+
+   Proof. Let U be a Scott-open set. Then we have that U = S{ ↑ c | c ∈
+   U ∩ KD}, since for any x ∈ U, by the algebraicity of D, there is a
+   compact element c ⊑ x in U, so x ∈ ↑ c ⊆ U -/
+lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 α) := by
+  apply isTopologicalBasis_of_isOpen_of_nhds
+  · -- every upper set of a compact element in the DCPO is a Scott open set
+    -- This is the true by definition direction, as compactness corresponds to Scott-Hausdorrf open,
+    -- and upper set corresponds to Upper set open
+    apply h_open
+  · -- If an element `x` is in an open set `u`, we can find it in a set in the basis (`upperSet c`)
+    apply h_nhds
+
+-- refactor
+lemma constructOpenFromCompact (u : Opens α)  :
+  u = ⋃₀ (upperSet '' { c ∈ 𝕂 α | cᵘ ⊆ u}) := by
+    ext x
+    simp only [SetLike.mem_coe, sUnion_image, mem_setOf_eq, mem_iUnion, exists_prop]
+    constructor
+    · intro x_in_u
+      have foo := h_nhds x u.carrier x_in_u u.isOpen
+      choose a b c d using foo
+      obtain ⟨e, f⟩ := b
+      use e
+      simp_all only [Opens.carrier_eq_coe, and_self]
+    ·
+      rintro ⟨y, ⟨c, hc⟩, h⟩
+      apply hc
+      simp_all only
