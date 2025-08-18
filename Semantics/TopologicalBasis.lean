@@ -130,13 +130,13 @@ lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 α) := by
     apply h_nhds
 
 -- refactor
-lemma constructOpenFromCompact (u : Opens α)  :
+lemma open_eq_open_of_basis (u : Set α) (hu: IsOpen u) :
   u = ⋃₀ (upperSet '' { c ∈ 𝕂 α | cᵘ ⊆ u}) := by
     ext x
     simp only [SetLike.mem_coe, sUnion_image, mem_setOf_eq, mem_iUnion, exists_prop]
     constructor
     · intro x_in_u
-      have foo := h_nhds x u.carrier x_in_u u.isOpen
+      have foo := h_nhds x u x_in_u hu
       choose a b c d using foo
       obtain ⟨e, f⟩ := b
       use e
@@ -145,3 +145,46 @@ lemma constructOpenFromCompact (u : Opens α)  :
       rintro ⟨y, ⟨c, hc⟩, h⟩
       apply hc
       simp_all only
+
+-- notation for this would be nice easpecially for the cᵘ ∩ dᵘ thing
+def open_of_compact (c: α) (hc: compact c): Opens α :=
+  ⟨cᵘ, h_open <| Set.mem_image_of_mem upperSet hc⟩
+
+lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
+  constructor
+  · intro e_in_u
+    have u_open := u.isOpen
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn] at u_open
+    let ⟨u_upperSet, _⟩ := u_open
+    intro a ha
+    exact u_upperSet ha e_in_u
+  · rintro h
+    exact Set.mem_of_mem_of_subset (by simp only [_root_.upperSet, mem_setOf_eq, le_refl]) h
+
+lemma open_eq_open_of_basis' (u : Opens α) :
+  u = sSup ({ o | ∃ (c: α) (hc: c ∈ 𝕂 α), c ∈ u ∧ (o = (open_of_compact c hc)) }) := by
+  ext e
+  simp only [SetLike.mem_coe, sSup_image, mem_setOf_eq, mem_iUnion, exists_prop]
+  constructor
+  · intro e_in_u
+    choose c' hc'₀ e_in_c' hc'₁ using h_nhds e u e_in_u u.isOpen
+    simp only [Opens.mem_sSup]
+    use ⟨c', h_open hc'₀⟩
+    constructor
+    ·
+      obtain ⟨c, hc₀, c'_eq⟩ := hc'₀
+      simp only [open_of_compact]
+      rw [← c'_eq] at hc'₁
+      use c ;use hc₀; use mem_iff_upSet_subset.2 hc'₁
+      simp only [Opens.mk.injEq]
+      exact id (Eq.symm c'_eq)
+    · exact e_in_c'
+  ·
+    rintro he
+    simp only [Opens.mem_sSup] at he
+    obtain ⟨c', hc'₀, he⟩ := he
+    obtain ⟨c, hc₀, hc₁, hc'₁⟩ := hc'₀
+    rw [mem_iff_upSet_subset] at hc₁
+    rw [open_of_compact] at hc'₁
+    rw [hc'₁] at he
+    exact Set.mem_of_mem_of_subset he hc₁

@@ -42,3 +42,9 @@ def compactLowerSet {α : Type*} [CompletePartialOrder α] (x: α) := ↓x ∩ �
 /-- Encodes notion of observable properties in programs (elements)-/
 class AlgebraicDCPO (α : Type*) extends CompletePartialOrder α where
   algebraic : ∀ x : α, (compactLowerSet x).Nonempty ∧ DirectedOn (· ≤ ·) (compactLowerSet x) ∧ x = sSup (compactLowerSet x)
+
+-- consider using namespace for algebraic dcpo
+noncomputable def lowerCompact_of_point {α : Type*} [AlgebraicDCPO α] (x: α) : {c : α // c ≤ x ∧ c ∈ 𝕂 α} := by
+  let ⟨a,b,d⟩ := AlgebraicDCPO.algebraic x
+  choose a₁ a₂ a₃ using a
+  exact ⟨a₁, a₂, a₃⟩
