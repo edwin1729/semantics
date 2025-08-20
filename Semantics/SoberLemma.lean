@@ -4,6 +4,7 @@ import Mathlib.Topology.Category.Locale
 import Mathlib.Topology.Homeomorph
 import Mathlib.Topology.Specialization
 import Mathlib.Topology.Order.ScottTopology
+import Mathlib.Order.Basic
 import Lean.Parser.Tactic
 import Mathlib.Topology.Sets.Opens
 
@@ -15,6 +16,7 @@ open Locale TopCat CategoryTheory TopologicalSpace
 
 def Sober (X : TopCat): Prop := QuasiSober X ∧ T0Space X
 
+-- could use a TFAE block!
 /-- Alternative definitions of Sober. Equivalence assumed -/
 def adjunctionHomeomorphism {X: TopCat} : IsHomeomorph (adjunctionTopToLocalePT.unit.app X)
     ↔ Sober X := by sorry
@@ -58,7 +60,7 @@ lemma directed_Kₓ (x: PT (Opens D)) : DirectedOn (· ≤ ·) (K x) := by
   have this := by
     rw [open_eq_open_of_basis' inf] at inf_in_x
     exact of_completelyPrime.1 inf_in_x
-  obtain ⟨_, ⟨e, he₀, he'₀, he'₁⟩, he'₂⟩ := this
+  obtain ⟨e', ⟨e, he₀, he'₀, he'₁⟩, he'₂⟩ := this
 
   rw [he'₁] at he'₂
   use e
@@ -68,7 +70,7 @@ lemma directed_Kₓ (x: PT (Opens D)) : DirectedOn (· ≤ ·) (K x) := by
   · simp only [inf]
     simp [inf, open_of_compact] at he'₀
     obtain ⟨h₁, h₂⟩ := he'₀
-    exact ⟨le_of_forall_ge h₁, le_of_forall_ge h₂⟩
+    exact ⟨h₁, h₂⟩
 
 -- TODO maybe this lemma is already in mathlib if i use `Ici`, Mathlib's version of upperSet
 lemma le_iff_ge_upperSet {α: Type*} (c e : α) [Preorder α] : c ≤ e ↔ eᵘ ⊆ cᵘ := by
@@ -94,16 +96,33 @@ theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (·
     constructor
     · -- Injective
       -- change Function.Injective (λ _ → _)--(λ (d: X) → {U | IsOpen U ∧ d ∈ U}))
-      #check ⇑(ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D)))
-      change Function.Injective ⇑(ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D)))
+      -- #check ⇑(ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D)))
+      -- change Function.Injective ⇑(ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D)))
       -- have t0 : T0Space Y := sorry
 
-      intro d e hde
-      let d' := (ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D))) d
-      let e' := (ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D))) e
-      have foo := Specialization (↑(TopCat.of D))
-      -- apply le_antisymm_iff at hde
-      sorry
+      intro d e
+      contrapose
+      intro d_ne_e
+      dsimp only [Functor.id_obj] at d e
+      simp only [Functor.comp_obj, topToLocale_obj, Functor.id_obj]
+
+      -- have foo (d_nle_e: _) := True
+      -- these simplifications should be deduplicated across the cases
+      dsimp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj, adjunctionTopToLocalePT,
+        topCatOpToFrm_obj_coe, hom_ofHom]
+      change ¬ ((localePointOfSpacePoint D d) = (localePointOfSpacePoint D e))
+      rw [@FrameHom.ext_iff (Opens D) Prop (Opens.instCompleteLattice) Prop.instCompleteLattice (localePointOfSpacePoint D d) (localePointOfSpacePoint D e)]
+      simp only [localePointOfSpacePoint_toFun, eq_iff_iff, not_forall]
+      rcases (@Ne.not_le_or_not_le D _ _ _ d_ne_e) with d_nle_e | e_nle_d
+      ·
+        simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
+          Classical.not_imp] at d_nle_e
+        obtain ⟨u, hu, d_in_u, e_in_u⟩ := d_nle_e
+        use ⟨u, hu⟩
+        simp only [Opens.mem_mk]
+        intro h
+        exact (and_not_self_iff (e ∈ u)).1 ⟨h.1 d_in_u, e_in_u⟩
+      · sorry
     · -- Surjective
       intro x
       simp only [Functor.comp_obj] at x
@@ -194,57 +213,3 @@ theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (·
             obtain ⟨e', ⟨e, he₀, he'₀, he'₁⟩ , he'₂⟩ := hu
             rw [he'₁] at he'₂
             exact ⟨e, he₀, mem_iff_upSet_subset.1 he'₀, he'₂⟩
-
-/--
-      let openSet := Opens.carrier '' { y | x y}
-      have openSetIsOpen : ∀ u ∈ openSet, IsOpen u := by
-        intro u hu
-        rw [Set.mem_image] at hu
-        sorry
-
-      -- This will be a frame homomorphism it's just a forgetful one should be trivial to construct
-      have homOS : FrameHom (Set D) (Opens D) := sorry
-      let x' : CompletelyPrimeFilter D := mkPrimeFilter (x.comp homOS)
-      -- simp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj]
-
-      -- The join of `Kₓ` is to be shown as the input mapping to `x`
-      let Kₓ := K x'.sets
-      -- We first need to show that K is directed: see InformalProof.txt
-      have IsDirected : DirectedOn (· ≤ ·) Kₓ := by
-        intro c hc d hd
-
-        let c' := upperSet c
-        let d' := upperSet d
-        have h_inf' : c' ∩ d' ∈ x'.sets := x'.inter_sets hc.2 hd.2
-        have inf_as_sup := constructOpenFromCompact' (c' ∩ d') (by apply openSetIsOpen; exact h_inter')
-        have h_inf'' : ⋃₀ {x | ∃ c_1 ∈ c' ∩ d' ∩ 𝕂 D, upperSet c_1 = x} ∈ x'.sets := by
-          rwa [inf_as_sup] at h_inf'
-        choose e' he'₀ he'₁ using (x'.prime h_inf'')
-        dsimp only [Set.mem_inter_iff, Set.mem_setOf_eq] at he'₀
-        choose e he₀ hee' using he'₀
-        obtain ⟨⟨e_in_c', e_in_d'⟩, he_compact⟩ := he₀
-        have e_in_Kₓ : e ∈ Kₓ := by
-          dsimp only [Set.mem_setOf_eq, Kₓ]
-          constructor
-          · -- e ∈ 𝕂 D
-            exact he_compact
-          · -- upperSet e ∈ x'.sets
-            rw [hee']
-            exact he'₁
-        use e
-        constructor
-        · -- e ∈ Kₓ
-          exact e_in_Kₓ
-        constructor
-        · -- e ≤ c
-          dsimp only [Kₓ]
-          exact e_in_c'
-        · dsimp only [Kₓ]
-          exact e_in_d'
-      have sSup_is_LUB := CompletePartialOrder.lubOfDirected Kₓ IsDirected
-      use sSup Kₓ
-      let foo :=  localePointOfSpacePoint D (sSup Kₓ)
-      let foo' := {u: Opens D | localePointOfSpacePoint D (sSup Kₓ) u}
-      -- simp? [localePointOfSpacePoint] at foo' -- does nothing useful
-      sorry
--/

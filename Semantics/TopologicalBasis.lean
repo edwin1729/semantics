@@ -27,7 +27,7 @@ lemma h_nhds
 (hu : IsOpen u)
 : ∃ v ∈ _root_.upperSet '' 𝕂 α, x ∈ v ∧ v ⊆ u := by
 
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn] at hu
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at hu
 
     obtain ⟨upper, hausdorff⟩ := hu
     have compactLowerBounded : ∀ x ∈ u, ∃ c: α, c ≤ x ∧ c ∈ u ∧ compact c := by
@@ -74,7 +74,7 @@ lemma h_nhds
         aesop
 
 lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn]
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
     constructor
     · -- u is an upper set
       unfold IsUpperSet
@@ -154,7 +154,7 @@ lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
   constructor
   · intro e_in_u
     have u_open := u.isOpen
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }, DirSupInaccOn] at u_open
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at u_open
     let ⟨u_upperSet, _⟩ := u_open
     intro a ha
     exact u_upperSet ha e_in_u
@@ -188,3 +188,39 @@ lemma open_eq_open_of_basis' (u : Opens α) :
     rw [open_of_compact] at hc'₁
     rw [hc'₁] at he
     exact Set.mem_of_mem_of_subset he hc₁
+
+-- Should be moved to scott_topology.lean
+/-- Unfortunately under Mathlib's for specialization is opposite our existing order -/
+lemma specialization_iff_ge {x y : α}: x ≤ y ↔ y ⤳ x := by
+  rw [specializes_iff_forall_open]
+  constructor
+  · intro x_le_y u hu x_in_u
+    apply (@isUpperSet_of_isOpen α {d | DirectedOn (· ≤ ·) d }) at hu
+    exact hu x_le_y x_in_u
+  ·
+    let u := {z : α | ¬(z ≤ y)}
+    have hu: IsOpen u := by
+      rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
+      constructor
+      · intro a b a_le_b a_in_u b_le_y
+        exact (and_not_self_iff (a ≤ y)).1 ⟨a_le_b.trans b_le_y, a_in_u⟩
+      · intro d hd hd₁ _ join h_join join_in_u
+        by_contra inter_empty
+        simp only [Set.Nonempty, mem_inter_iff, mem_setOf_eq, not_exists, not_and, not_not,
+          u] at inter_empty
+        have join_le_y : join ≤ y := by
+          have y_in_UB_d : y ∈ upperBounds d := by
+            simp_all only [mem_setOf_eq, u]
+            exact inter_empty
+          have h_join := isLUB_iff_le_iff.1 h_join y
+          rwa [←  h_join] at y_in_UB_d
+        exact (and_not_self_iff (join ≤ y)).1 ⟨join_le_y, join_in_u⟩
+
+    intro h_specialize
+    -- Take the contrapose of x being in an open implying y must also be in it
+    have h_specialize := not_imp_not.2 <| h_specialize u hu
+    -- we know y ∉ u as y ≤ y. And from specialization relation on y we deduce that x ∉ u
+    simp only [mem_setOf_eq, le_refl, not_true_eq_false, not_false_eq_true, not_not, forall_const,
+      u] at h_specialize
+    -- in other words x ≤ y as required
+    exact h_specialize
