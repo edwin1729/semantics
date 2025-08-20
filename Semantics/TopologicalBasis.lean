@@ -6,10 +6,12 @@ set_option autoImplicit false
 
 open Topology.IsScott TopologicalSpace Set Topology
 
-instance (α : Type*) [CompletePartialOrder α] : TopologicalSpace α := Topology.scott α {d | DirectedOn (· ≤ ·) d}
+variable {α : Type*} [CompletePartialOrder α]
+
+instance : TopologicalSpace α := Topology.scott α {d | DirectedOn (· ≤ ·) d}
 -- We create the IsScott instance in order to use some Mathlib
 -- particularly `isOpen_iff_isUpperSet_and_dirSupInaccOn`
-instance (α : Type*) [CompletePartialOrder α] : IsScott α {d | DirectedOn (· ≤ ·) d} := ⟨by rfl⟩
+instance : IsScott α {d | DirectedOn (· ≤ ·) d} := ⟨by rfl⟩
 
 -- This goal is very obvious but `simp_all` makes no progress `apply?` doesn't seem to be helpful
 -- aesop gives the below which is too big, for something so simple.
@@ -18,14 +20,101 @@ instance (α : Type*) [CompletePartialOrder α] : IsScott α {d | DirectedOn (·
 lemma aesopify {α : Type*} {compact: α -> Prop } {x: α} [LE α] {u: Set α} (a: ∃ c, (c ≤ x ∧ compact c) ∧ c ∈ u) : ∃ c ≤ x, c ∈ u ∧ compact c := by
   aesop
 
+lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
+    constructor
+    · -- u is an upper set
+      unfold IsUpperSet
+      intro a b a_1 a_2
+      simp_all only [mem_image]
+      obtain ⟨w, h⟩ := hu
+      obtain ⟨left, right⟩ := h
+      subst right
+      -- unfold _root_.upperSet at a_2 ⊢
+      simp only [_root_.upperSet, mem_setOf_eq] at a_2 ⊢
+      transitivity a
+      · exact a_2
+      · exact a_1
+    · -- u is a Scott-Hausdorff open set, ie it has the inaccessable directed joins property
+      -- However the directed sets for our topology are defined precisely as the directed sets of the our DCPOs
+      -- So compact elements are precisely those elements which have directed innaccessable joins
+      intro d hd nonempty _  x hx hx'
+      simp at hu
+      choose y yCompact yUpper using hu
+      -- rewrite `x`'s LUB propoerty in terms of sSup
+      have hx : x = sSup d := by
+        have hsSupd := CompletePartialOrder.lubOfDirected d hd
+        exact IsLUB.unique hx hsSupd
+
+      have hy : y ≤ sSup d := by
+        rw [← hx]
+
+        subst yUpper
+        simp only [_root_.upperSet, mem_setOf_eq] at hx'
+        exact hx'
+
+      choose a a_in_d ha' using yCompact d hd hy
+      have a_in_u : a ∈ u := by aesop
+      use a
+      constructor
+      · exact a_in_d
+      · exact a_in_u
+
+-- notation for this would be nice especially for the cᵘ ∩ dᵘ thing
+def open_of_compact (c: α) (hc: compact c): Opens α :=
+  ⟨cᵘ, h_open <| Set.mem_image_of_mem upperSet hc⟩
+
+lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
+  constructor
+  · intro e_in_u
+    have u_open := u.isOpen
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at u_open
+    let ⟨u_upperSet, _⟩ := u_open
+    intro a ha
+    exact u_upperSet ha e_in_u
+  · rintro h
+    exact Set.mem_of_mem_of_subset (by simp only [_root_.upperSet, mem_setOf_eq, le_refl]) h
+
+-- Should be moved to scott_topology.lean
+/-- Unfortunately under Mathlib's for specialization is opposite our existing order -/
+lemma specialization_iff_ge {x y : α}: x ≤ y ↔ y ⤳ x := by
+  rw [specializes_iff_forall_open]
+  constructor
+  · intro x_le_y u hu x_in_u
+    apply (@isUpperSet_of_isOpen α {d | DirectedOn (· ≤ ·) d }) at hu
+    exact hu x_le_y x_in_u
+  ·
+    let u := {z : α | ¬(z ≤ y)}
+    have hu: IsOpen u := by
+      rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
+      constructor
+      · intro a b a_le_b a_in_u b_le_y
+        exact (and_not_self_iff (a ≤ y)).1 ⟨a_le_b.trans b_le_y, a_in_u⟩
+      · intro d hd hd₁ _ join h_join join_in_u
+        by_contra inter_empty
+        simp only [Set.Nonempty, mem_inter_iff, mem_setOf_eq, not_exists, not_and, not_not,
+          u] at inter_empty
+        have join_le_y : join ≤ y := by
+          have y_in_UB_d : y ∈ upperBounds d := by
+            simp_all only [mem_setOf_eq, u]
+            exact inter_empty
+          have h_join := isLUB_iff_le_iff.1 h_join y
+          rwa [←  h_join] at y_in_UB_d
+        exact (and_not_self_iff (join ≤ y)).1 ⟨join_le_y, join_in_u⟩
+
+    intro h_specialize
+    -- Take the contrapose of x being in an open implying y must also be in it
+    have h_specialize := not_imp_not.2 <| h_specialize u hu
+    -- we know y ∉ u as y ≤ y. And from specialization relation on y we deduce that x ∉ u
+    simp only [mem_setOf_eq, le_refl, not_true_eq_false, not_false_eq_true, not_not, forall_const,
+      u] at h_specialize
+    -- in other words x ≤ y as required
+    exact h_specialize
+
 variable {α : Type*} [AlgebraicDCPO α]
 
-lemma h_nhds
-(x : α)
-(u : Set α)
-(x_in_u : x ∈ u)
-(hu : IsOpen u)
-: ∃ v ∈ _root_.upperSet '' 𝕂 α, x ∈ v ∧ v ⊆ u := by
+lemma h_nhds (x : α) (u : Set α) (x_in_u : x ∈ u) (hu : IsOpen u)
+  : ∃ v ∈ _root_.upperSet '' 𝕂 α, x ∈ v ∧ v ⊆ u := by
 
     rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at hu
 
@@ -73,45 +162,6 @@ lemma h_nhds
       · intro y hy
         aesop
 
-lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
-    constructor
-    · -- u is an upper set
-      unfold IsUpperSet
-      intro a b a_1 a_2
-      simp_all only [mem_image]
-      obtain ⟨w, h⟩ := hu
-      obtain ⟨left, right⟩ := h
-      subst right
-      -- unfold _root_.upperSet at a_2 ⊢
-      simp only [_root_.upperSet, mem_setOf_eq] at a_2 ⊢
-      transitivity a
-      · exact a_2
-      · exact a_1
-    · -- u is a Scott-Hausdorff open set, ie it has the inaccessable directed joins property
-      -- However the directed sets for our topology are defined precisely as the directed sets of the our DCPOs
-      -- So compact elements are precisely those elements which have directed innaccessable joins
-      intro d hd nonempty _  x hx hx'
-      simp at hu
-      choose y yCompact yUpper using hu
-      -- rewrite `x`'s LUB propoerty in terms of sSup
-      have hx : x = sSup d := by
-        have hsSupd := CompletePartialOrder.lubOfDirected d hd
-        exact IsLUB.unique hx hsSupd
-
-      have hy : y ≤ sSup d := by
-        rw [← hx]
-
-        subst yUpper
-        simp only [_root_.upperSet, mem_setOf_eq] at hx'
-        exact hx'
-
-      choose a a_in_d ha' using yCompact d hd hy
-      have a_in_u : a ∈ u := by aesop
-      use a
-      constructor
-      · exact a_in_d
-      · exact a_in_u
 -- below is comment is copied from reference
 /-- Proposition 3.5.2. Let (D, ⊑) be an algebraic DCPO. Then the set of opens
    ↑ KD = { ↑ c | c ∈ KD}
@@ -129,7 +179,8 @@ lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 α) := by
   · -- If an element `x` is in an open set `u`, we can find it in a set in the basis (`upperSet c`)
     apply h_nhds
 
--- refactor
+-- TODO should this be removed?
+-- Atleast rewrite one in terms of the second one (in terms of the strong er result)
 lemma open_eq_open_of_basis (u : Set α) (hu: IsOpen u) :
   u = ⋃₀ (upperSet '' { c ∈ 𝕂 α | cᵘ ⊆ u}) := by
     ext x
@@ -145,21 +196,6 @@ lemma open_eq_open_of_basis (u : Set α) (hu: IsOpen u) :
       rintro ⟨y, ⟨c, hc⟩, h⟩
       apply hc
       simp_all only
-
--- notation for this would be nice easpecially for the cᵘ ∩ dᵘ thing
-def open_of_compact (c: α) (hc: compact c): Opens α :=
-  ⟨cᵘ, h_open <| Set.mem_image_of_mem upperSet hc⟩
-
-lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
-  constructor
-  · intro e_in_u
-    have u_open := u.isOpen
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at u_open
-    let ⟨u_upperSet, _⟩ := u_open
-    intro a ha
-    exact u_upperSet ha e_in_u
-  · rintro h
-    exact Set.mem_of_mem_of_subset (by simp only [_root_.upperSet, mem_setOf_eq, le_refl]) h
 
 lemma open_eq_open_of_basis' (u : Opens α) :
   u = sSup ({ o | ∃ (c: α) (hc: c ∈ 𝕂 α), c ∈ u ∧ (o = (open_of_compact c hc)) }) := by
@@ -188,39 +224,3 @@ lemma open_eq_open_of_basis' (u : Opens α) :
     rw [open_of_compact] at hc'₁
     rw [hc'₁] at he
     exact Set.mem_of_mem_of_subset he hc₁
-
--- Should be moved to scott_topology.lean
-/-- Unfortunately under Mathlib's for specialization is opposite our existing order -/
-lemma specialization_iff_ge {x y : α}: x ≤ y ↔ y ⤳ x := by
-  rw [specializes_iff_forall_open]
-  constructor
-  · intro x_le_y u hu x_in_u
-    apply (@isUpperSet_of_isOpen α {d | DirectedOn (· ≤ ·) d }) at hu
-    exact hu x_le_y x_in_u
-  ·
-    let u := {z : α | ¬(z ≤ y)}
-    have hu: IsOpen u := by
-      rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
-      constructor
-      · intro a b a_le_b a_in_u b_le_y
-        exact (and_not_self_iff (a ≤ y)).1 ⟨a_le_b.trans b_le_y, a_in_u⟩
-      · intro d hd hd₁ _ join h_join join_in_u
-        by_contra inter_empty
-        simp only [Set.Nonempty, mem_inter_iff, mem_setOf_eq, not_exists, not_and, not_not,
-          u] at inter_empty
-        have join_le_y : join ≤ y := by
-          have y_in_UB_d : y ∈ upperBounds d := by
-            simp_all only [mem_setOf_eq, u]
-            exact inter_empty
-          have h_join := isLUB_iff_le_iff.1 h_join y
-          rwa [←  h_join] at y_in_UB_d
-        exact (and_not_self_iff (join ≤ y)).1 ⟨join_le_y, join_in_u⟩
-
-    intro h_specialize
-    -- Take the contrapose of x being in an open implying y must also be in it
-    have h_specialize := not_imp_not.2 <| h_specialize u hu
-    -- we know y ∉ u as y ≤ y. And from specialization relation on y we deduce that x ∉ u
-    simp only [mem_setOf_eq, le_refl, not_true_eq_false, not_false_eq_true, not_not, forall_const,
-      u] at h_specialize
-    -- in other words x ≤ y as required
-    exact h_specialize

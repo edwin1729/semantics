@@ -11,6 +11,7 @@ import Mathlib.Topology.Sets.Opens
 import Semantics.Defs
 import Semantics.TopologicalBasis
 
+-- TODO consider namespaces and sections
 set_option autoImplicit false
 open Locale TopCat CategoryTheory TopologicalSpace
 
@@ -45,10 +46,6 @@ lemma of_completelyPrime  {P: Opens D → Prop} {x: PT (Opens D)} : (x (sSup {u 
     constructor
     · use u
     · exact hxu
-
---lemma of_completelyPrime {x: PT (Opens D)} {P: Opens D → Prop} : (x (sSup {u | P u})) ↔ ∃ u, P u ∧ x u := by
---
---  u = sSup ({ o | ∃ (c: α) (hc: c ∈ 𝕂 α), (o = (open_of_compact c hc)) ∧ cᵘ ⊆ u}) := by
 
 lemma directed_Kₓ (x: PT (Opens D)) : DirectedOn (· ≤ ·) (K x) := by
   rintro c ⟨hc₀, hc₁⟩ d ⟨hd₀, hd₁⟩
@@ -95,18 +92,12 @@ theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (·
   · -- Bijective
     constructor
     · -- Injective
-      -- change Function.Injective (λ _ → _)--(λ (d: X) → {U | IsOpen U ∧ d ∈ U}))
-      -- #check ⇑(ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D)))
-      -- change Function.Injective ⇑(ConcreteCategory.hom (adjunctionTopToLocalePT.unit.app (TopCat.of D)))
-      -- have t0 : T0Space Y := sorry
-
       intro d e
       contrapose
       intro d_ne_e
       dsimp only [Functor.id_obj] at d e
       simp only [Functor.comp_obj, topToLocale_obj, Functor.id_obj]
 
-      -- have foo (d_nle_e: _) := True
       -- these simplifications should be deduplicated across the cases
       dsimp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj, adjunctionTopToLocalePT,
         topCatOpToFrm_obj_coe, hom_ofHom]
@@ -117,12 +108,22 @@ theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (·
       ·
         simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
           Classical.not_imp] at d_nle_e
-        obtain ⟨u, hu, d_in_u, e_in_u⟩ := d_nle_e
+        obtain ⟨u, hu, d_in_u, e_ne_u⟩ := d_nle_e
         use ⟨u, hu⟩
         simp only [Opens.mem_mk]
         intro h
-        exact (and_not_self_iff (e ∈ u)).1 ⟨h.1 d_in_u, e_in_u⟩
-      · sorry
+        exact (and_not_self_iff (e ∈ u)).1 ⟨h.1 d_in_u, e_ne_u⟩
+      · -- This follows dually from above. Attempting to resuse the above proof was unseccessfule
+        -- CompletePartialOrder instance for the dual type not implemented.
+        -- To do so binary relation, `r` of DirectedOn needs to be inverted, but `r` is not stored/accessible.
+        -- It would be if DierctedOn was a struct rather than a function
+        simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
+          Classical.not_imp] at e_nle_d
+        obtain ⟨u, hu, e_in_u, d_ne_u⟩ := e_nle_d
+        use ⟨u, hu⟩
+        simp only [Opens.mem_mk]
+        intro h
+        exact (and_not_self_iff (d ∈ u)).1 ⟨h.2 e_in_u, d_ne_u⟩
     · -- Surjective
       intro x
       simp only [Functor.comp_obj] at x
