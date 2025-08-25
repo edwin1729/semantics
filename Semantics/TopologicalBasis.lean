@@ -61,8 +61,10 @@ lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
       · exact a_in_u
 
 -- notation for this would be nice especially for the cᵘ ∩ dᵘ thing
-def open_of_compact (c: α) (hc: compact c): Opens α :=
-  ⟨cᵘ, h_open <| Set.mem_image_of_mem upperSet hc⟩
+def open_of_compact (c : {c: α // compact c}) : Opens α :=
+  ⟨cᵘ, h_open <| Set.mem_image_of_mem upperSet c.2⟩
+notation c:80"ᵘᵒ"  => open_of_compact c -- upperSet, open
+
 
 lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
   constructor
@@ -111,15 +113,15 @@ lemma specialization_iff_ge {x y : α}: x ≤ y ↔ y ⤳ x := by
     -- in other words x ≤ y as required
     exact h_specialize
 
-variable {α : Type*} [AlgebraicDCPO α]
+variable {D : Type*} [AlgebraicDCPO D]
 
-lemma h_nhds (x : α) (u : Set α) (x_in_u : x ∈ u) (hu : IsOpen u)
-  : ∃ v ∈ _root_.upperSet '' 𝕂 α, x ∈ v ∧ v ⊆ u := by
+lemma h_nhds (x : D) (u : Set D) (x_in_u : x ∈ u) (hu : IsOpen u)
+  : ∃ v ∈ _root_.upperSet '' 𝕂 D, x ∈ v ∧ v ⊆ u := by
 
-    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at hu
+    rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn D {d | DirectedOn (· ≤ ·) d }] at hu
 
     obtain ⟨upper, hausdorff⟩ := hu
-    have compactLowerBounded : ∀ x ∈ u, ∃ c: α, c ≤ x ∧ c ∈ u ∧ compact c := by
+    have compactLowerBounded : ∀ x ∈ u, ∃ c: D, c ≤ x ∧ c ∈ u ∧ compact c := by
       intro x x_in_u
       -- the Algebraicity property
       obtain ⟨nonempty, directedCls, join⟩ := AlgebraicDCPO.algebraic x
@@ -146,13 +148,12 @@ lemma h_nhds (x : α) (u : Set α) (x_in_u : x ∈ u) (hu : IsOpen u)
 
     -- given an x ∈ u, take it to its compact element
     choose f hf hf' hf'' using compactLowerBounded
-    let f' : {x : α // x ∈ u} → α := λ x => f x.1 x.2
+    let f' : {x : D // x ∈ u} → D := λ x => f x.1 x.2
     let upSetC := _root_.upperSet (f' ⟨x, x_in_u⟩)
     use upSetC
 
     constructor
-    ·
-      simp only [_root_.upperSet, mem_image]
+    · simp only [_root_.upperSet, mem_image]
       use (f' ⟨x, x_in_u⟩)
       constructor
       · apply hf''
@@ -170,7 +171,7 @@ lemma h_nhds (x : α) (u : Set α) (x_in_u : x ∈ u) (hu : IsOpen u)
    Proof. Let U be a Scott-open set. Then we have that U = S{ ↑ c | c ∈
    U ∩ KD}, since for any x ∈ U, by the algebraicity of D, there is a
    compact element c ⊑ x in U, so x ∈ ↑ c ⊆ U -/
-lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 α) := by
+lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 D) := by
   apply isTopologicalBasis_of_isOpen_of_nhds
   · -- every upper set of a compact element in the DCPO is a Scott open set
     -- This is the true by definition direction, as compactness corresponds to Scott-Hausdorrf open,
@@ -179,26 +180,30 @@ lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 α) := by
   · -- If an element `x` is in an open set `u`, we can find it in a set in the basis (`upperSet c`)
     apply h_nhds
 
--- TODO should this be removed?
--- Atleast rewrite one in terms of the second one (in terms of the strong er result)
-lemma open_eq_open_of_basis (u : Set α) (hu: IsOpen u) :
-  u = ⋃₀ (upperSet '' { c ∈ 𝕂 α | cᵘ ⊆ u}) := by
-    ext x
-    simp only [SetLike.mem_coe, sUnion_image, mem_setOf_eq, mem_iUnion, exists_prop]
-    constructor
-    · intro x_in_u
-      have foo := h_nhds x u x_in_u hu
-      choose a b c d using foo
-      obtain ⟨e, f⟩ := b
-      use e
-      simp_all only [Opens.carrier_eq_coe, and_self]
-    ·
-      rintro ⟨y, ⟨c, hc⟩, h⟩
-      apply hc
-      simp_all only
+/-- Any open set, `u`, can be constructed as a union of sets from the basis.
+    The basis consists of the upward closures of those compact elements in `u`
+    This is the weaker version of the lemma using `Set`s instead of `Opens`-/
+lemma open_eq_open_of_basis (u : Set D) (hu: IsOpen u) :
+  u = ⋃₀ (upperSet '' { c ∈ 𝕂 D | cᵘ ⊆ u}) := by
+  ext x
+  simp only [SetLike.mem_coe, sUnion_image, mem_setOf_eq, mem_iUnion, exists_prop]
+  constructor
+  · intro x_in_u
+    have foo := h_nhds x u x_in_u hu
+    choose a b c d using foo
+    obtain ⟨e, f⟩ := b
+    use e
+    simp_all only [Opens.carrier_eq_coe, and_self]
+  ·
+    rintro ⟨y, ⟨c, hc⟩, h⟩
+    apply hc
+    simp_all only
 
-lemma open_eq_open_of_basis' (u : Opens α) :
-  u = sSup ({ o | ∃ (c: α) (hc: c ∈ 𝕂 α), c ∈ u ∧ (o = (open_of_compact c hc)) }) := by
+/-- See `open_eq_open_of_basis`
+    This is the stronger version of the lemma using `Opens` instead of `Set`s.
+    I don't reuse the previous result to prove this, since the proof turns out just as long-/
+lemma open_eq_open_of_basis' (u : Opens D) :
+  u = sSup ({ o | ∃ (c: D) (hc: c ∈ 𝕂 D), c ∈ u ∧ (o = ⟨c,hc⟩ᵘᵒ) }) := by
   ext e
   simp only [SetLike.mem_coe, sSup_image, mem_setOf_eq, mem_iUnion, exists_prop]
   constructor

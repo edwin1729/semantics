@@ -15,12 +15,13 @@ import Semantics.TopologicalBasis
 set_option autoImplicit false
 open Locale TopCat CategoryTheory TopologicalSpace Topology.IsScott
 
-def Sober (X : TopCat): Prop := QuasiSober X ∧ T0Space X
+def Sober (X : TopCat) := IsHomeomorph (adjunctionTopToLocalePT.unit.app X)
 
--- could use a TFAE block!
-/-- Alternative definitions of Sober. Equivalence assumed -/
-def adjunctionHomeomorphism {X: TopCat} : IsHomeomorph (adjunctionTopToLocalePT.unit.app X)
-    ↔ Sober X := by sorry
+--  TODO prove equivalnce of alternative defenitions of Sober
+-- def Sober (X : TopCat): Prop := QuasiSober X ∧ T0Space X
+--  could use a TFAE block
+-- lemma alt_def {X: TopCat} : QuasiSober X ∧ T0Space X
+--    ↔ Sober X := by sorry
 
 variable {D : Type*} [AlgebraicDCPO D]
 
@@ -29,7 +30,7 @@ instance : TopologicalSpace D := Topology.scott D {d | DirectedOn (· ≤ ·) d}
 
 /-- We claim that x is entirely determined by its set of basic opens `K x`.
     Proving this correspondence establishes the homeomorphism below. -/
-abbrev K (x: PT (Opens D)) := { c | ∃ hc: c ∈ 𝕂 D, x <| open_of_compact c hc }
+abbrev K (x: PT (Opens D)) := { c | ∃ hc: c ∈ 𝕂 D, x <| ⟨c, hc⟩ᵘᵒ }
 
 /-- Could add this to Mathlib. Lean's automation can prove this easily enough if a simp [map_sSup, sSup_Prop_eq].
     But I think using this lemma improves readability -/
@@ -49,7 +50,7 @@ lemma of_completelyPrime  {P: Opens D → Prop} {x: PT (Opens D)} : (x (sSup {u 
 
 lemma directed_Kₓ (x: PT (Opens D)) : DirectedOn (· ≤ ·) (K x) := by
   rintro c ⟨hc₀, hc₁⟩ d ⟨hd₀, hd₁⟩
-  let inf := (open_of_compact c hc₀) ⊓ (open_of_compact d hd₀)
+  let inf := ⟨c, hc₀⟩ᵘᵒ  ⊓ ⟨d, hd₀⟩ᵘᵒ
   have inf_in_x : x inf := by
     simp only [map_inf, inf]
     exact ⟨hc₁, hd₁⟩
@@ -57,6 +58,7 @@ lemma directed_Kₓ (x: PT (Opens D)) : DirectedOn (· ≤ ·) (K x) := by
   have this := by
     rw [open_eq_open_of_basis' inf] at inf_in_x
     exact of_completelyPrime.1 inf_in_x
+
   obtain ⟨e', ⟨e, he₀, he'₀, he'₁⟩, he'₂⟩ := this
 
   rw [he'₁] at he'₂
@@ -124,7 +126,7 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
                 · have sSup_is_LUB := CompletePartialOrder.lubOfDirected Kₓ (directed_Kₓ x)
                   exact sSup_is_LUB.1 hc₀
               exact ⟨he₀, he'₀, he₁⟩
-        _ ↔ ∃ (e c : D) (hc: c ∈ 𝕂 D), e ∈ 𝕂 D ∧ eᵘ ⊆ u ∧ cᵘ ⊆ eᵘ ∧ x (open_of_compact c hc) := by
+        _ ↔ ∃ (e c : D) (hc: c ∈ 𝕂 D), e ∈ 𝕂 D ∧ eᵘ ⊆ u ∧ cᵘ ⊆ eᵘ ∧ x (⟨c, hc⟩ᵘᵒ) := by
           constructor
           · rintro ⟨e, c, ⟨hc₀, hc₁⟩, he₀, he₁, e_le_c⟩
             use e; use c; use hc₀
@@ -133,14 +135,12 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
           · rintro ⟨e, c, hc₀, he₀, he'₀, c'_le_e', hc'₀⟩
             use e; use c;
             exact ⟨⟨hc₀, hc'₀⟩, he₀, he'₀, by rwa [le_iff_ge_upperSet e c]⟩
-        _ ↔ ∃ (e: D) (he: e ∈ 𝕂 D), eᵘ ⊆ u ∧ x (open_of_compact e he) := by
+        _ ↔ ∃ (e: D) (he: e ∈ 𝕂 D), eᵘ ⊆ u ∧ x (⟨e, he⟩ᵘᵒ) := by
           constructor
           · rintro ⟨e, c, hc₀, he₀, he'₀, c'_le_e', hc'₀⟩
             use e; use he₀; use he'₀
-            let cU := (open_of_compact c hc₀)
-            let eU := (open_of_compact e he₀)
-            have foo : cU ⊓ eU = cU := by simpa [open_of_compact, cU, eU]
-            have bar : x (cU ⊓ eU) = x cU := by simp_all
+            have foo : ⟨c, hc₀⟩ᵘᵒ ⊓ ⟨e, he₀⟩ᵘᵒ = ⟨c, hc₀⟩ᵘᵒ := by simpa [open_of_compact]
+            have bar : x (⟨c, hc₀⟩ᵘᵒ ⊓ ⟨e, he₀⟩ᵘᵒ) = x (⟨c, hc₀⟩ᵘᵒ) := by simp_all
             simp [map_sSup] at bar
             exact bar hc'₀
           · -- the reverse direction is a bit silly as the requirements for c are all satisfied by e itself
@@ -148,11 +148,11 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
             use e; use e; use he₀;
         _ ↔ x u := by
           constructor
-          · let P (o: Opens D) := ∃ (c: D) (hc: c ∈ 𝕂 D), c ∈ u ∧ (o = (open_of_compact c hc))
+          · let P (o: Opens D) := ∃ (c: D) (hc: c ∈ 𝕂 D), c ∈ u ∧ (o = ⟨c, hc⟩ᵘᵒ)
             -- intro he
             rintro ⟨e, he₀, he'₀, he'₁⟩
             have he': ∃ u, P u ∧ x u := by
-              use (open_of_compact e he₀)
+              use ⟨e, he₀⟩ᵘᵒ
               exact ⟨⟨e, he₀, mem_iff_upSet_subset.2 he'₀, rfl⟩, he'₁⟩
 
             rw [← of_completelyPrime] at he'
@@ -167,12 +167,8 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
             exact ⟨e, he₀, mem_iff_upSet_subset.1 he'₀, he'₂⟩
 
 theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (· ≤ ·) d})) := by
-  apply adjunctionHomeomorphism.1
-  -- #check (adjunctionTopToLocalePT.unit.app X)
-  -- have : X ≃ₜ ((topToLocale ⋙ pt).obj X) := sorry
-
   dsimp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj, adjunctionTopToLocalePT,
-        topCatOpToFrm_obj_coe, hom_ofHom]
+        topCatOpToFrm_obj_coe, hom_ofHom, Sober]
   constructor
   · continuity
   · -- Open Map
