@@ -13,13 +13,6 @@ instance : TopologicalSpace α := Topology.scott α {d | DirectedOn (· ≤ ·) 
 -- particularly `isOpen_iff_isUpperSet_and_dirSupInaccOn`
 instance : IsScott α {d | DirectedOn (· ≤ ·) d} := ⟨by rfl⟩
 
--- This goal is very obvious but `simp_all` makes no progress `apply?` doesn't seem to be helpful
--- aesop gives the below which is too big, for something so simple.
--- aesop doesn't work at the call site as it exceeds maxRecDepth (and manually increasing this causes stackoverflow)
--- Soooo, I awkwardly pull this lemma out and use aesop.
-lemma aesopify {α : Type*} {compact: α -> Prop } {x: α} [LE α] {u: Set α} (a: ∃ c, (c ≤ x ∧ compact c) ∧ c ∈ u) : ∃ c ≤ x, c ∈ u ∧ compact c := by
-  aesop
-
 lemma h_open {u: Set α} (hu: u ∈ Ici '' 𝕂 α): IsOpen u := by
     rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
     constructor
@@ -139,12 +132,8 @@ lemma h_nhds (x : D) (u : Set D) (x_in_u : x ∈ u) (hu : IsOpen u)
       -- The intersection contains exactly what we want, a compact element in u and ≤ x
       have nonempty_inter := hausdorff directedCls nonempty directedCls x_is_LUB x_in_u
       simp only [compactLowerSet, inter_nonempty, mem_inter_iff, mem_setOf_eq] at nonempty_inter
-
-      -- This is the funny bit where I decided it's cleanest to extract boilerplate to `aesopify`
-      -- didn't figure out where or how I was running into infinite recursion on direct `aesop`
-      change ∃ c, (c ≤ x ∧ compact c) ∧ c ∈ u at nonempty_inter
-      have : ∃ c ≤ x, c ∈ u ∧ compact c:= aesopify nonempty_inter
-      exact this
+      obtain ⟨c, ⟨hc₀, hc₁⟩, hc₂⟩ := nonempty_inter
+      exact ⟨c, hc₀, hc₂, hc₁⟩
 
     -- given an x ∈ u, take it to its compact element
     choose f hf hf' hf'' using compactLowerBounded
