@@ -13,7 +13,7 @@ import Semantics.TopologicalBasis
 
 -- TODO consider namespaces and sections
 set_option autoImplicit false
-open Locale TopCat CategoryTheory TopologicalSpace
+open Locale TopCat CategoryTheory TopologicalSpace Topology.IsScott
 
 def Sober (X : TopCat): Prop := QuasiSober X ∧ T0Space X
 
@@ -79,63 +79,14 @@ lemma le_iff_ge_upperSet {α: Type*} (c e : α) [Preorder α] : c ≤ e ↔ eᵘ
     apply x e
     rfl
 
-theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (· ≤ ·) d})) := by
-  apply adjunctionHomeomorphism.1
-  -- #check (adjunctionTopToLocalePT.unit.app X)
-  -- have : X ≃ₜ ((topToLocale ⋙ pt).obj X) := sorry
-  constructor
-  · -- continuity obtained since we have a morphism in the category of topological spaces
-    -- should have been quite easy to prove...
-    sorry
-  · -- Open Map
-    sorry
-  · -- Bijective
-    constructor
-    · -- Injective
-      intro d e
-      contrapose
-      intro d_ne_e
-      dsimp only [Functor.id_obj] at d e
-      simp only [Functor.comp_obj, topToLocale_obj, Functor.id_obj]
-
-      -- these simplifications should be deduplicated across the cases
-      dsimp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj, adjunctionTopToLocalePT,
-        topCatOpToFrm_obj_coe, hom_ofHom]
-      change ¬ ((localePointOfSpacePoint D d) = (localePointOfSpacePoint D e))
-      rw [@FrameHom.ext_iff (Opens D) Prop (Opens.instCompleteLattice) Prop.instCompleteLattice (localePointOfSpacePoint D d) (localePointOfSpacePoint D e)]
-      simp only [localePointOfSpacePoint_toFun, eq_iff_iff, not_forall]
-      rcases (@Ne.not_le_or_not_le D _ _ _ d_ne_e) with d_nle_e | e_nle_d
-      ·
-        simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
-          Classical.not_imp] at d_nle_e
-        obtain ⟨u, hu, d_in_u, e_ne_u⟩ := d_nle_e
-        use ⟨u, hu⟩
-        simp only [Opens.mem_mk]
-        intro h
-        exact (and_not_self_iff (e ∈ u)).1 ⟨h.1 d_in_u, e_ne_u⟩
-      · -- This follows dually from above. Attempting to resuse the above proof was unseccessfule
-        -- CompletePartialOrder instance for the dual type not implemented.
-        -- To do so binary relation, `r` of DirectedOn needs to be inverted, but `r` is not stored/accessible.
-        -- It would be if DierctedOn was a struct rather than a function
-        simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
-          Classical.not_imp] at e_nle_d
-        obtain ⟨u, hu, e_in_u, d_ne_u⟩ := e_nle_d
-        use ⟨u, hu⟩
-        simp only [Opens.mem_mk]
-        intro h
-        exact (and_not_self_iff (d ∈ u)).1 ⟨h.2 e_in_u, d_ne_u⟩
-    · -- Surjective
+lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
       intro x
-      simp only [Functor.comp_obj] at x
       dsimp [pt, PT] at x
       let Kₓ := K x
       let inp := sSup Kₓ
       use inp
-      dsimp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj, adjunctionTopToLocalePT,
-        topCatOpToFrm_obj_coe, hom_ofHom]
       apply FrameHom.ext
       intro u
-      dsimp only [topCatOpToFrm_obj_coe] at u
       simp only [eq_iff_iff]
       change sSup Kₓ ∈ u ↔ x u
 
@@ -214,3 +165,60 @@ theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (·
             obtain ⟨e', ⟨e, he₀, he'₀, he'₁⟩ , he'₂⟩ := hu
             rw [he'₁] at he'₂
             exact ⟨e, he₀, mem_iff_upSet_subset.1 he'₀, he'₂⟩
+
+theorem scottIsSober : Sober (@TopCat.of D (Topology.scott D {d | DirectedOn (· ≤ ·) d})) := by
+  apply adjunctionHomeomorphism.1
+  -- #check (adjunctionTopToLocalePT.unit.app X)
+  -- have : X ≃ₜ ((topToLocale ⋙ pt).obj X) := sorry
+
+  dsimp only [Functor.id_obj, Functor.comp_obj, topToLocale_obj, adjunctionTopToLocalePT,
+        topCatOpToFrm_obj_coe, hom_ofHom]
+  constructor
+  · continuity
+  · -- Open Map
+    intro u hu
+    use ⟨u, hu⟩
+    ext x
+    simp only [Set.mem_setOf_eq, Set.image]
+    dsimp only [topCatOpToFrm_obj_coe] at x
+    constructor
+    · intro he
+      choose e he' using (surjectivity x)
+      subst he'
+      exact ⟨e, he, by rfl⟩
+    · intro hx
+      choose e he he' using hx
+      subst he'
+      exact he
+  · -- Bijective
+    constructor
+    · -- Injective
+      intro d e
+      contrapose
+      intro d_ne_e
+
+      change ¬ ((localePointOfSpacePoint D d) = (localePointOfSpacePoint D e))
+      rw [@FrameHom.ext_iff (Opens D) Prop (Opens.instCompleteLattice) Prop.instCompleteLattice (localePointOfSpacePoint D d) (localePointOfSpacePoint D e)]
+      simp only [localePointOfSpacePoint_toFun, eq_iff_iff, not_forall]
+      rcases (@Ne.not_le_or_not_le D _ _ _ d_ne_e) with d_nle_e | e_nle_d
+      ·
+        simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
+          Classical.not_imp] at d_nle_e
+        obtain ⟨u, hu, d_in_u, e_ne_u⟩ := d_nle_e
+        use ⟨u, hu⟩
+        simp only [Opens.mem_mk]
+        intro h
+        exact (and_not_self_iff (e ∈ u)).1 ⟨h.1 d_in_u, e_ne_u⟩
+      · -- This follows dually from above. Attempting to resuse the above proof was unseccessfule
+        -- CompletePartialOrder instance for the dual type not implemented.
+        -- To do so binary relation, `r` of DirectedOn needs to be inverted, but `r` is not stored/accessible.
+        -- It would be if DierctedOn was a struct rather than a function
+        simp only [specialization_iff_ge, specializes_iff_forall_open, not_forall,
+          Classical.not_imp] at e_nle_d
+        obtain ⟨u, hu, e_in_u, d_ne_u⟩ := e_nle_d
+        use ⟨u, hu⟩
+        simp only [Opens.mem_mk]
+        intro h
+        exact (and_not_self_iff (d ∈ u)).1 ⟨h.2 e_in_u, d_ne_u⟩
+    · -- Surjective
+      exact surjectivity
