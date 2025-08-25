@@ -13,7 +13,7 @@ import Semantics.TopologicalBasis
 
 -- TODO consider namespaces and sections
 set_option autoImplicit false
-open Locale TopCat CategoryTheory TopologicalSpace Topology.IsScott
+open Locale TopCat CategoryTheory TopologicalSpace Topology.IsScott Set
 
 def Sober (X : TopCat) := IsHomeomorph (adjunctionTopToLocalePT.unit.app X)
 
@@ -71,16 +71,6 @@ lemma directed_Kₓ (x: PT (Opens D)) : DirectedOn (· ≤ ·) (K x) := by
     obtain ⟨h₁, h₂⟩ := he'₀
     exact ⟨h₁, h₂⟩
 
--- TODO maybe this lemma is already in mathlib if i use `Ici`, Mathlib's version of upperSet
-lemma le_iff_ge_upperSet {α: Type*} (c e : α) [Preorder α] : c ≤ e ↔ eᵘ ⊆ cᵘ := by
-  simp [upperSet]
-  constructor
-  · intro hec x hxc
-    exact Preorder.le_trans c e x hec hxc
-  · intro x
-    apply x e
-    rfl
-
 lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
       intro x
       dsimp [pt, PT] at x
@@ -94,7 +84,7 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
 
       calc
         _ ↔ sSup Kₓ ∈ u.carrier := by rfl
-        _ ↔ sSup Kₓ ∈ ⋃₀ (upperSet '' { e ∈ 𝕂 D | eᵘ ⊆ u}) := by
+        _ ↔ sSup Kₓ ∈ ⋃₀ (Ici '' { e ∈ 𝕂 D | eᵘ ⊆ u}) := by
           nth_rewrite 1 [open_eq_open_of_basis u.carrier u.isOpen]
           rfl
         _ ↔ ∃ e ∈ 𝕂 D, eᵘ ⊆ u ∧ e ≤ sSup Kₓ := by
@@ -103,10 +93,10 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
             simp only [Set.mem_image, Set.mem_setOf_eq] at he'₀
             choose e he₁ he₂ using he'₀
             use e
-            simp only [← he₂, upperSet, Set.mem_setOf_eq] at he'₁
+            simp only [← he₂, Ici, Set.mem_setOf_eq] at he'₁
             exact ⟨he₁.1, he₁.2, he'₁⟩
           · rintro ⟨e, he₀, he₁, he₂⟩
-            have he'₀ : eᵘ ∈ (upperSet '' {c | c ∈ 𝕂 D ∧ cᵘ ⊆ u}) := by
+            have he'₀ : eᵘ ∈ (Ici '' {c | c ∈ 𝕂 D ∧ cᵘ ⊆ u}) := by
               simp only [Set.mem_image, Set.mem_setOf_eq]
               use e
             apply Set.subset_sUnion_of_mem at he'₀
@@ -130,16 +120,16 @@ lemma surjectivity: Function.Surjective (localePointOfSpacePoint D) := by
           constructor
           · rintro ⟨e, c, ⟨hc₀, hc₁⟩, he₀, he₁, e_le_c⟩
             use e; use c; use hc₀
-            exact ⟨he₀, he₁, by rwa [← le_iff_ge_upperSet e c], hc₁⟩
+            exact ⟨he₀, he₁, Ici_subset_Ici.2 e_le_c, hc₁⟩
 
           · rintro ⟨e, c, hc₀, he₀, he'₀, c'_le_e', hc'₀⟩
             use e; use c;
-            exact ⟨⟨hc₀, hc'₀⟩, he₀, he'₀, by rwa [le_iff_ge_upperSet e c]⟩
+            exact ⟨⟨hc₀, hc'₀⟩, he₀, he'₀, Ici_subset_Ici.1 c'_le_e'⟩
         _ ↔ ∃ (e: D) (he: e ∈ 𝕂 D), eᵘ ⊆ u ∧ x (⟨e, he⟩ᵘᵒ) := by
           constructor
           · rintro ⟨e, c, hc₀, he₀, he'₀, c'_le_e', hc'₀⟩
             use e; use he₀; use he'₀
-            have foo : ⟨c, hc₀⟩ᵘᵒ ⊓ ⟨e, he₀⟩ᵘᵒ = ⟨c, hc₀⟩ᵘᵒ := by simpa [open_of_compact]
+            have foo : ⟨c, hc₀⟩ᵘᵒ ⊓ ⟨e, he₀⟩ᵘᵒ = ⟨c, hc₀⟩ᵘᵒ := by simp [open_of_compact, Ici_subset_Ici.1 c'_le_e']
             have bar : x (⟨c, hc₀⟩ᵘᵒ ⊓ ⟨e, he₀⟩ᵘᵒ) = x (⟨c, hc₀⟩ᵘᵒ) := by simp_all
             simp [map_sSup] at bar
             exact bar hc'₀

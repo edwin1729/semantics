@@ -20,7 +20,7 @@ instance : IsScott α {d | DirectedOn (· ≤ ·) d} := ⟨by rfl⟩
 lemma aesopify {α : Type*} {compact: α -> Prop } {x: α} [LE α] {u: Set α} (a: ∃ c, (c ≤ x ∧ compact c) ∧ c ∈ u) : ∃ c ≤ x, c ∈ u ∧ compact c := by
   aesop
 
-lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
+lemma h_open {u: Set α} (hu: u ∈ Ici '' 𝕂 α): IsOpen u := by
     rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }]
     constructor
     · -- u is an upper set
@@ -30,8 +30,8 @@ lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
       obtain ⟨w, h⟩ := hu
       obtain ⟨left, right⟩ := h
       subst right
-      -- unfold _root_.upperSet at a_2 ⊢
-      simp only [_root_.upperSet, mem_setOf_eq] at a_2 ⊢
+      -- unfold Ici at a_2 ⊢
+      simp only [Ici, mem_setOf_eq] at a_2 ⊢
       transitivity a
       · exact a_2
       · exact a_1
@@ -50,7 +50,7 @@ lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
         rw [← hx]
 
         subst yUpper
-        simp only [_root_.upperSet, mem_setOf_eq] at hx'
+        simp only [Ici, mem_setOf_eq] at hx'
         exact hx'
 
       choose a a_in_d ha' using yCompact d hd hy
@@ -62,8 +62,8 @@ lemma h_open {u: Set α} (hu: u ∈ upperSet '' 𝕂 α): IsOpen u := by
 
 -- notation for this would be nice especially for the cᵘ ∩ dᵘ thing
 def open_of_compact (c : {c: α // compact c}) : Opens α :=
-  ⟨cᵘ, h_open <| Set.mem_image_of_mem upperSet c.2⟩
-notation c:80"ᵘᵒ"  => open_of_compact c -- upperSet, open
+  ⟨cᵘ, h_open <| Set.mem_image_of_mem Ici c.2⟩
+notation c:80"ᵘᵒ"  => open_of_compact c -- Ici, open
 
 
 lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
@@ -71,11 +71,11 @@ lemma mem_iff_upSet_subset {e: α} {u: Opens α}: e ∈ u ↔ eᵘ ⊆ u := by
   · intro e_in_u
     have u_open := u.isOpen
     rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn α {d | DirectedOn (· ≤ ·) d }] at u_open
-    let ⟨u_upperSet, _⟩ := u_open
+    let ⟨u_Ici, _⟩ := u_open
     intro a ha
-    exact u_upperSet ha e_in_u
-  · rintro h
-    exact Set.mem_of_mem_of_subset (by simp only [_root_.upperSet, mem_setOf_eq, le_refl]) h
+    exact u_Ici ha e_in_u
+  · intro h
+    exact h <| mem_Ici.2 (le_refl e)
 
 -- Should be moved to scott_topology.lean
 /-- Unfortunately under Mathlib's for specialization is opposite our existing order -/
@@ -116,7 +116,7 @@ lemma specialization_iff_ge {x y : α}: x ≤ y ↔ y ⤳ x := by
 variable {D : Type*} [AlgebraicDCPO D]
 
 lemma h_nhds (x : D) (u : Set D) (x_in_u : x ∈ u) (hu : IsOpen u)
-  : ∃ v ∈ _root_.upperSet '' 𝕂 D, x ∈ v ∧ v ⊆ u := by
+  : ∃ v ∈ Ici '' 𝕂 D, x ∈ v ∧ v ⊆ u := by
 
     rw [@isOpen_iff_isUpperSet_and_dirSupInaccOn D {d | DirectedOn (· ≤ ·) d }] at hu
 
@@ -149,11 +149,10 @@ lemma h_nhds (x : D) (u : Set D) (x_in_u : x ∈ u) (hu : IsOpen u)
     -- given an x ∈ u, take it to its compact element
     choose f hf hf' hf'' using compactLowerBounded
     let f' : {x : D // x ∈ u} → D := λ x => f x.1 x.2
-    let upSetC := _root_.upperSet (f' ⟨x, x_in_u⟩)
-    use upSetC
+    use Ici (f' ⟨x, x_in_u⟩)
 
     constructor
-    · simp only [_root_.upperSet, mem_image]
+    · simp only [Ici, mem_image]
       use (f' ⟨x, x_in_u⟩)
       constructor
       · apply hf''
@@ -171,20 +170,20 @@ lemma h_nhds (x : D) (u : Set D) (x_in_u : x ∈ u) (hu : IsOpen u)
    Proof. Let U be a Scott-open set. Then we have that U = S{ ↑ c | c ∈
    U ∩ KD}, since for any x ∈ U, by the algebraicity of D, there is a
    compact element c ⊑ x in U, so x ∈ ↑ c ⊆ U -/
-lemma scott_is_upset : IsTopologicalBasis (upperSet '' 𝕂 D) := by
+lemma scott_is_upset : IsTopologicalBasis (Ici '' 𝕂 D) := by
   apply isTopologicalBasis_of_isOpen_of_nhds
   · -- every upper set of a compact element in the DCPO is a Scott open set
     -- This is the true by definition direction, as compactness corresponds to Scott-Hausdorrf open,
     -- and upper set corresponds to Upper set open
     apply h_open
-  · -- If an element `x` is in an open set `u`, we can find it in a set in the basis (`upperSet c`)
+  · -- If an element `x` is in an open set `u`, we can find it in a set in the basis (`Ici c`)
     apply h_nhds
 
 /-- Any open set, `u`, can be constructed as a union of sets from the basis.
     The basis consists of the upward closures of those compact elements in `u`
     This is the weaker version of the lemma using `Set`s instead of `Opens`-/
 lemma open_eq_open_of_basis (u : Set D) (hu: IsOpen u) :
-  u = ⋃₀ (upperSet '' { c ∈ 𝕂 D | cᵘ ⊆ u}) := by
+  u = ⋃₀ (Ici '' { c ∈ 𝕂 D | cᵘ ⊆ u}) := by
   ext x
   simp only [SetLike.mem_coe, sUnion_image, mem_setOf_eq, mem_iUnion, exists_prop]
   constructor

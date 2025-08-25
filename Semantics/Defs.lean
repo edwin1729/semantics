@@ -13,15 +13,10 @@ set_option autoImplicit false
 -- Notation from [Abramsky and Jung, *Domain Theory*][abramsky_gabbay_maibaum_1994]
 -- These definitons are also in the report
 
-/-- downward closure-/
-def lowerSet {α : Type*} [LE α] (x: α): Set α :=  {y | y ≤ x}
-/-- notation for lowerSet -/
-notation "↓" x:80 => lowerSet x
-
-/-- upward closure-/
-def upperSet {α : Type*} [LE α] (x: α): Set α :=  {y | x ≤ y}
-/-- notation for upperSet (↑ was taken) -/
-notation x:80 "ᵘ" => upperSet x
+/-- notation for downward closure -/
+notation "↓" x:80 => Set.Iic x
+/-- notation for upward closure (↑ was taken) -/
+notation x:80 "ᵘ" => Set.Ici x
 
 /-- approximants: read as x is way smaller than y-/
 def approx  {α : Type*} [CompletePartialOrder α] (x: α) (y: α) := ∀ (d : Set α), DirectedOn (· ≤ ·) d → y ≤ sSup d → ∃ a ∈ d, x ≤ a
