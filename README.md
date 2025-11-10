@@ -2,6 +2,12 @@
 Complete Proof of Proposition 3.5.3 on page 42. With all the prerequisite lemmas. We prove that Algebraic DCPOs 
 (directed complete partial orders) are Sober.
 
+The classical reference in this area of Computer Science is [Domain Theory Handbook](https://achimjungbham.github.io/pub/papers/handy1.pdf).
+I believe that though the proof itself cannot be found here, the statement can be (TODO provide this)
+
+Link to zulip discussion:
+https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/.3E.20Algebraic.20complete.20partial.20order.20and.20domain.20theory/with/536359313
+
 ## super brief background:
 DCPOs are a standard construction in Domain theory. They are sets with some structure where each element (hereafter referred to as **point**)
 is some (possible approximate) semantics of some program. We impose an additional structure of the DCPO being Algebraic (please see reference).
@@ -30,8 +36,3 @@ Proposition 3.5.3 proven in `SoberLemma.lean`. Main result: `scottIsSober`
 Though this proof is correct and sorry free. It is at point very unreadable and I myself am not happy with its current state.
 I will clean it up when I find time.
 
-The classical reference in this area of Computer Science is [Domain Theory Handbook](https://achimjungbham.github.io/pub/papers/handy1.pdf).
-I believe that though the proof itself cannot be found here, the statement can be (TODO provide this)
-
-Link to zulip discussion:
-https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/.3E.20Algebraic.20complete.20partial.20order.20and.20domain.20theory/with/536359313
